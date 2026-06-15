@@ -27,14 +27,10 @@
 Pinch::PinchResult Pinch::pinch(std::istream &input, std::ostream &output,
                                 const opts &opts) {
 
-  if (opts.numLines < 0) {
-    return Pinch::PinchResult{.isError = true,
-                              .error = "Number of lines cannot be negative."};
-  }
-  const size_t targetLines = static_cast<size_t>(opts.numLines);
-  const size_t lineStart = targetLines / 2;
-  const size_t lineEnd = targetLines - lineStart;
-  size_t line_count = 0;
+  const unsigned long long targetLines = opts.numLines;
+  const unsigned long long lineStart = targetLines / 2;
+  const unsigned long long lineEnd = targetLines - lineStart;
+  unsigned long long line_count = 0;
 
   std::vector<Pinch::TLine> head_vector;
   std::deque<Pinch::TLine> tail_queue;
@@ -53,11 +49,11 @@ Pinch::PinchResult Pinch::pinch(std::istream &input, std::ostream &output,
         warned_about_stripping = true;
       }
     }
-    if (head_vector.size() < lineStart) {
+    if (static_cast<unsigned long long>(head_vector.size()) < lineStart) {
       head_vector.push_back({.linenumber = line_count, .line = line});
     } else {
       tail_queue.push_back({.linenumber = line_count, .line = line});
-      if (tail_queue.size() > lineEnd)
+      if (static_cast<unsigned long long>(tail_queue.size()) > lineEnd)
         tail_queue.pop_front();
     }
   }

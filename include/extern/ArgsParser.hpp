@@ -14,13 +14,13 @@ class ArgsParser;
 /**
  * @brief Defines the supported data types for argument values.
  */
-enum class ArgType { STRING, INTEGER, BOOLEAN, DOUBLE, REGEX };
+enum class ArgType { STRING, INTEGER, BOOLEAN, DOUBLE, REGEX, ULONGLONG };
 
 /**
  * @brief Represents the values parsed from the command line.
  */
 using ArgValue =
-    std::variant<std::string, int, double, bool, std::vector<std::string>>;
+    std::variant<std::string, int, double, bool, unsigned long long, std::vector<std::string>>;
 
 /**
  * @brief Defines the specification for a single command-line argument.
@@ -43,6 +43,8 @@ struct ArgSpec {
   int length = -1;                       // -1 means use default based on type
   std::optional<int> min = std::nullopt; // For INTEGER
   std::optional<int> max = std::nullopt; // For INTEGER
+  std::optional<unsigned long long> min_ull = std::nullopt; // For ULONGLONG
+  std::optional<unsigned long long> max_ull = std::nullopt; // For ULONGLONG
   std::optional<std::vector<std::string>> allowedValues =
       std::nullopt;       // For STRING
   std::string regex = ""; // For REGEX
@@ -115,6 +117,8 @@ static std::string argTypeToString(ArgType type) {
     return "DOUBLE";
   case ArgType::REGEX:
     return "REGEX";
+  case ArgType::ULONGLONG:
+    return "ULONGLONG";
   default:
     return "UNKNOWN";
   }
@@ -132,6 +136,8 @@ static bool isCompatible(ArgType type, const ArgValue &value) {
     return std::holds_alternative<double>(value);
   case ArgType::REGEX:
     return std::holds_alternative<std::vector<std::string>>(value);
+  case ArgType::ULONGLONG:
+    return std::holds_alternative<unsigned long long>(value);
   default:
     return false;
   }
@@ -266,6 +272,24 @@ ArgsParser::processValue(const ArgSpec &spec,
       return std::nullopt;
     }
   }
+  case ArgType::ULONGLONG: {
+    if (!valStr.empty() && valStr[0] == '-') {
+      std::cerr << "Error: Value '" << valStr << "' cannot be negative for an unsigned argument."
+                << std::endl;
+      return std::nullopt;
+    }
+    try {
+      size_t pos;
+      unsigned long long val = std::stoull(valStr, &pos);
+      if (pos != valStr.length())
+        throw std::invalid_argument("Remaining chars");
+      return val;
+    } catch (...) {
+      std::cerr << "Error: Value '" << valStr << "' is not a valid unsigned long long."
+                << std::endl;
+      return std::nullopt;
+    }
+  }
   case ArgType::DOUBLE: {
     try {
       size_t pos;
@@ -313,6 +337,18 @@ bool ArgsParser::validateValue(const ArgSpec &spec,
     if (spec.max.has_value() && val > spec.max.value()) {
       std::cerr << "Error: Value " << val << " is greater than maximum "
                 << spec.max.value() << std::endl;
+      return false;
+    }
+  } else if (spec.type == ArgType::ULONGLONG) {
+    unsigned long long val = std::get<unsigned long long>(value);
+    if (spec.min_ull.has_value() && val < spec.min_ull.value()) {
+      std::cerr << "Error: Value " << val << " is less than minimum "
+                << spec.min_ull.value() << std::endl;
+      return false;
+    }
+    if (spec.max_ull.has_value() && val > spec.max_ull.value()) {
+      std::cerr << "Error: Value " << val << " is greater than maximum "
+                << spec.max_ull.value() << std::endl;
       return false;
     }
   } else if (spec.type == ArgType::STRING &&
@@ -470,6 +506,8 @@ void ArgsParser::showHelp() const {
         std::cout << std::get<std::string>(spec.defaultValue.value());
       } else if (std::holds_alternative<int>(spec.defaultValue.value())) {
         std::cout << std::get<int>(spec.defaultValue.value());
+      } else if (std::holds_alternative<unsigned long long>(spec.defaultValue.value())) {
+        std::cout << std::get<unsigned long long>(spec.defaultValue.value());
       } else if (std::holds_alternative<double>(spec.defaultValue.value())) {
         std::cout << std::get<double>(spec.defaultValue.value());
       } else if (std::holds_alternative<bool>(spec.defaultValue.value())) {

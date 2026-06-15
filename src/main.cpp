@@ -45,12 +45,12 @@ int main(int argc, char **argv) {
                       .required = false,
                       .defaultValue = false});
 
-  parser.addArgument({.type = ArgType::INTEGER,
+  parser.addArgument({.type = ArgType::ULONGLONG,
                       .shortFlag = "-n",
                       .longFlag = "--number",
                       .description = "Maximum number of lines to display",
                       .required = false,
-                      .defaultValue = 20});
+                      .defaultValue = 20ULL});
 
   parser.addArgument({.type = ArgType::STRING,
                       .shortFlag = "-i",
@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
   Pinch::opts opts;
 
   if (results.at("number").has_value()) {
-    opts.numLines = std::get<int>(results.at("number").value());
+    opts.numLines = std::get<unsigned long long>(results.at("number").value());
   }
 
   if (results.at("separator").has_value()) {

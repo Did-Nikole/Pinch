@@ -23,7 +23,7 @@
 class Pinch {
 public:
   struct opts {
-    int numLines;
+    unsigned long long numLines;
     bool lineNumbers;
     std::string separator;
     std::string bookend;
@@ -41,7 +41,7 @@ public:
   };
 
   struct TLine {
-    size_t linenumber;
+    unsigned long long linenumber;
     std::string line;
 
     std::string get(bool showLineNumbers) const {
