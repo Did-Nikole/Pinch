@@ -6,7 +6,7 @@
 
 # Compiler and Flags
 CXX          := g++
-CXXFLAGS     := -std=c++17 -Wall -Wextra -Wpedantic -Wshadow -Wformat=2 \
+CXXFLAGS     := -std=c++20 -Wall -Wextra -Wpedantic -Wshadow -Wformat=2 \
                 -Wcast-align -Wconversion -Wsign-conversion -Wnull-dereference \
                 -Iinclude -Iinclude/extern -MMD -MP
 

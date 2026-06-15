@@ -1,8 +1,172 @@
+#include "pinch.h"
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <string>
+#include <vector>
+#include <cerrno>
+#include <cstring>
 #define ARGSPARSERRENEWED_IMPLEMENTATION
 
 #include "ArgsParser.hpp"
 
-int main(int argc, char **argv) { return 0; }
+int main(int argc, char **argv) {
+
+  std::map<std::string, std::optional<ArgValue>> results;
+  ArgsParser parser;
+  // create pointers to buffererd io
+  std::stringstream ss_input;
+  std::stringstream ss_output;
+
+  std::istream *input_ptr = &std::cin;
+  std::ostream *output_ptr = &std::cout;
+
+  parser.addArgument({.type = ArgType::BOOLEAN,
+                      .shortFlag = "-h",
+                      .longFlag = "--help",
+                      .description = "Display help message",
+                      .required = false,
+                      .defaultValue = false});
+
+  parser.addArgument({.type = ArgType::INTEGER,
+                      .shortFlag = "-n",
+                      .longFlag = "--lines",
+                      .description = "Maximum number of lines to display",
+                      .required = false,
+                      .defaultValue = 20});
+
+  parser.addArgument({.type = ArgType::STRING,
+                      .shortFlag = "-i",
+                      .longFlag = "--input",
+                      .description = "Input file",
+                      .required = false,
+                      .defaultValue = std::string("stdin")});
+
+  parser.addArgument({.type = ArgType::STRING,
+                      .shortFlag = "-o",
+                      .longFlag = "--output",
+                      .description = "Output file",
+                      .required = false,
+                      .defaultValue = std::string("stdout")});
+
+  parser.addArgument({.type = ArgType::STRING,
+                      .shortFlag = "-s",
+                      .longFlag = "--separator",
+                      .description = "Separator text",
+                      .required = false,
+                      .defaultValue = std::string("[... TRUNCATED ...]")});
+
+  parser.addArgument({.type = ArgType::STRING,
+                      .shortFlag = "-b",
+                      .longFlag = "--bookend",
+                      .description = "Bookend marker",
+                      .required = false,
+                      .defaultValue = std::string("[ SOF ]")});
+
+  parser.addArgument({.type = ArgType::STRING,
+                      .shortFlag = "-e",
+                      .longFlag = "--endbookend",
+                      .description = "Endbookend marker",
+                      .required = false,
+                      .defaultValue = std::string("[ EOF ]")});
+
+  parser.addArgument({.type = ArgType::BOOLEAN,
+                      .shortFlag = "-q",
+                      .longFlag = "--quiet",
+                      .description = "Quiet mode. Suppresses the -b and -e"
+                                     "markers completely (outputs only data and"
+                                     " the -s separator).",
+                      .required = false,
+                      .defaultValue = false});
+
+  parser.addArgument({.type = ArgType::BOOLEAN,
+                      .shortFlag = "-p",
+                      .longFlag = "--printable",
+                      .description =
+                          "Printable only. Strips non-printable control "
+                          "characters, escape sequences, and binary data.",
+                      .required = false,
+                      .defaultValue = false});
+
+  if (!parser.parse(argc, argv, results)) {
+    parser.showHelp();
+    return 1;
+  }
+
+  if (results.at("help").has_value() &&
+      std::get<bool>(results.at("help").value())) {
+    parser.showHelp();
+    return 0;
+  }
+
+  if (results.at("input").has_value()) {
+    auto instring = std::get<std::string>(results.at("input").value());
+    if (instring != "stdin") {
+      auto *infile = new std::ifstream(instring);
+      if (!infile->is_open()) {
+        std::cerr << "Error: Cannot open input file '" << instring << "': " << std::strerror(errno) << std::endl;
+        delete infile;
+        return 1;
+      }
+      input_ptr = infile;
+    }
+  }
+
+  if (results.at("output").has_value()) {
+    auto outstring = std::get<std::string>(results.at("output").value());
+    if (outstring != "stdout") {
+      auto *outfile = new std::ofstream(outstring);
+      if (!outfile->is_open()) {
+        std::cerr << "Error: Cannot open output file '" << outstring << "': " << std::strerror(errno) << std::endl;
+        delete outfile;
+        if (input_ptr != &std::cin) {
+          delete input_ptr;
+        }
+        return 1;
+      }
+      output_ptr = outfile;
+    }
+  }
+
+  Pinch::opts opts;
+
+  if (results.at("lines").has_value()) {
+    opts.numLines = std::get<int>(results.at("lines").value());
+  }
+
+  if (results.at("separator").has_value()) {
+    opts.separator = std::get<std::string>(results.at("separator").value());
+  }
+
+  if (results.at("bookend").has_value()) {
+    opts.bookend = std::get<std::string>(results.at("bookend").value());
+  }
+
+  if (results.at("endbookend").has_value()) {
+    opts.endbookend = std::get<std::string>(results.at("endbookend").value());
+  }
+
+  if (results.at("printable").has_value()) {
+    opts.isPrintableOnly = std::get<bool>(results.at("printable").value());
+  }
+
+  if (results.at("quiet").has_value()) {
+    opts.quiet = std::get<bool>(results.at("quiet").value());
+  }
+
+  auto pinch_result = Pinch::pinch(*input_ptr, *output_ptr, opts);
+
+  if (input_ptr != &std::cin) {
+    delete input_ptr;
+  }
+  if (output_ptr != &std::cout) {
+    delete output_ptr;
+  }
+
+  if (pinch_result.isError) {
+    std::cerr << pinch_result.getError() << std::endl;
+    return 1;
+  }
+
+  return 0;
+}
