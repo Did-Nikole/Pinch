@@ -23,6 +23,14 @@ PREFIX       ?= /usr/local
 BINDIR       ?= $(PREFIX)/bin
 MANDIR       ?= $(PREFIX)/share/man/man1
 
+# Debian packaging settings
+PACKAGE_NAME    := pinch
+PACKAGE_VERSION ?= 1.0.0
+PACKAGE_ARCH    := $(shell dpkg --print-architecture 2>/dev/null || echo "amd64")
+DEB_STAGE_DIR   := build/deb_pkg
+DIST_DIR        := dist
+DEB_FILE        := $(DIST_DIR)/$(PACKAGE_NAME)_$(PACKAGE_VERSION)_$(PACKAGE_ARCH).deb
+
 # Target executable name
 TARGET       := pinch
 
@@ -67,10 +75,11 @@ clean:
 	rm -rf $(BUILD_DIR)
 	@echo "Cleaned build objects and dependencies."
 
-# Clean everything including the executable
+# Clean everything including the executable and packaged binaries
 fclean: clean
 	rm -f $(TARGET)
-	@echo "Cleaned executable: $(TARGET)"
+	rm -rf $(DIST_DIR)
+	@echo "Cleaned executable and distribution files."
 
 # Rebuild target
 re: fclean all
@@ -95,4 +104,40 @@ uninstall:
 	rm -f $(DESTDIR)$(MANDIR)/pinch.1
 	@echo "Uninstalled $(TARGET) and man page."
 
-.PHONY: all debug clean fclean re install uninstall
+# ------------------------------------------------------------------------------
+# Debian Packaging
+# ------------------------------------------------------------------------------
+
+# Build a Debian package in the dist/ folder
+deb: all
+	@echo "Creating Debian package structure..."
+	rm -rf $(DEB_STAGE_DIR)
+	mkdir -p $(DEB_STAGE_DIR)/DEBIAN
+	mkdir -p $(DEB_STAGE_DIR)/usr/bin
+	mkdir -p $(DEB_STAGE_DIR)/usr/share/man/man1
+	mkdir -p $(DEB_STAGE_DIR)/usr/share/doc/$(PACKAGE_NAME)
+	# Copy files to staging area
+	cp -f $(TARGET) $(DEB_STAGE_DIR)/usr/bin/$(TARGET)
+	chmod 755 $(DEB_STAGE_DIR)/usr/bin/$(TARGET)
+	cp -f pinch.1 $(DEB_STAGE_DIR)/usr/share/man/man1/pinch.1
+	chmod 644 $(DEB_STAGE_DIR)/usr/share/man/man1/pinch.1
+	cp -f LICENSE $(DEB_STAGE_DIR)/usr/share/doc/$(PACKAGE_NAME)/copyright
+	chmod 644 $(DEB_STAGE_DIR)/usr/share/doc/$(PACKAGE_NAME)/copyright
+	# Generate DEBIAN/control file
+	@echo "Package: $(PACKAGE_NAME)" > $(DEB_STAGE_DIR)/DEBIAN/control
+	@echo "Version: $(PACKAGE_VERSION)" >> $(DEB_STAGE_DIR)/DEBIAN/control
+	@echo "Section: utils" >> $(DEB_STAGE_DIR)/DEBIAN/control
+	@echo "Priority: optional" >> $(DEB_STAGE_DIR)/DEBIAN/control
+	@echo "Architecture: $(PACKAGE_ARCH)" >> $(DEB_STAGE_DIR)/DEBIAN/control
+	@echo "Maintainer: Nikole Smith <appsolutionz.com>" >> $(DEB_STAGE_DIR)/DEBIAN/control
+	@echo "Description: Truncates and displays the start and end of text streams." >> $(DEB_STAGE_DIR)/DEBIAN/control
+	@echo " Pinch is a high-performance command-line utility that extracts" >> $(DEB_STAGE_DIR)/DEBIAN/control
+	@echo " the head and tail of an input stream and discards the middle," >> $(DEB_STAGE_DIR)/DEBIAN/control
+	@echo " ensuring a constant memory footprint even with multi-gigabyte logs." >> $(DEB_STAGE_DIR)/DEBIAN/control
+	# Build the package
+	mkdir -p $(DIST_DIR)
+	dpkg-deb --build $(DEB_STAGE_DIR) $(DEB_FILE)
+	@echo "Debian package successfully built: $(DEB_FILE)"
+
+.PHONY: all debug clean fclean re install uninstall deb
+

@@ -3,3 +3,9 @@
 
 # Ignore all folders starting with a dot (.) anywhere in the project
 .*/
+
+# Ignore the distribution directory (packaged deb files)
+/dist/
+
+# Ignore the release automation script
+/release.sh
