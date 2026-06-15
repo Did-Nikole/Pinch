@@ -28,3 +28,8 @@ To view the man page locally:
 ```bash
 man ./pinch.1
 ```
+
+## License
+
+This project is licensed under the terms of the GNU General Public License version 3 (GPL-3.0). See the [LICENSE](file:///home/nikole/java-workspace2/pinch/LICENSE) file for the full license text.
+
