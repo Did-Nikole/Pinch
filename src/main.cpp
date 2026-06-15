@@ -140,8 +140,8 @@ int main(int argc, char **argv) {
 
   Pinch::opts opts;
 
-  if (results.at("lines").has_value()) {
-    opts.numLines = std::get<int>(results.at("lines").value());
+  if (results.at("number").has_value()) {
+    opts.numLines = std::get<int>(results.at("number").value());
   }
 
   if (results.at("separator").has_value()) {

@@ -1,0 +1,107 @@
+.TH PINCH 1 "June 2026" "Version 1.0" "User Commands"
+.SH NAME
+pinch \- truncate and display the start and end of text streams
+.SH SYNOPSIS
+.B pinch
+[\fB\-h\fR|\fB\-\-help\fR]
+[\fB\-n\fR|\fB\-\-number\fR \fInum\fR]
+[\fB\-i\fR|\fB\-\-input\fR \fIfile\fR]
+[\fB\-o\fR|\fB\-\-output\fR \fIfile\fR]
+[\fB\-s\fR|\fB\-\-separator\fR \fItext\fR]
+[\fB\-b\fR|\fB\-\-bookend\fR \fImarker\fR]
+[\fB\-e\fR|\fB\-\-endbookend\fR \fImarker\fR]
+[\fB\-q\fR|\fB\-\-quiet\fR]
+[\fB\-p\fR|\fB\-\-printable\fR]
+[\fB\-l\fR|\fB\-\-lines\fR]
+.SH DESCRIPTION
+.B pinch
+is a command-line utility for truncating long text or log files by outputting the beginning and end of the file/stream while omitting the middle part. By default, it outputs the first 10 lines and the last 10 lines, inserting a separator marker in between if the total input exceeds the target number of lines (default 20).
+.PP
+If the total number of lines in the input is strictly less than the target limit, the entire file content is output without the truncation separator (though start-of-file and end-of-file bookend markers are still printed unless quiet mode is enabled). If the input line count is greater than or equal to the target limit, the separator is inserted between the head and tail vectors.
+.PP
+.B pinch
+is designed to be extremely memory-efficient. It uses a buffered streaming model with a double-ended queue (deque) for the tail buffer, ensuring it only keeps the required number of lines in memory rather than loading the entire file. This makes it highly suitable for processing massive log files or continuous stream inputs.
+.SH OPTIONS
+.TP
+.BR \-h ", " \-\-help
+Display a usage help message and exit.
+.TP
+.BI \-n " num" ", " \-\-number= "num"
+Specify the maximum number of lines to display. The default is 20 lines. The utility will output approximately the first half (num / 2) lines and the last half (num - num / 2) lines. The value \fInum\fR must be a non-negative integer. If set to 0, only bookend markers and/or the truncation separator will be shown.
+.TP
+.BI \-i " file" ", " \-\-input= "file"
+Read input from the specified \fIfile\fR instead of standard input (STDIN). If the value is "stdin" (case-sensitive) or the option is omitted, standard input is read.
+.TP
+.BI \-o " file" ", " \-\-output= "file"
+Write output to the specified \fIfile\fR instead of standard output (STDOUT). If the value is "stdout" (case-sensitive) or the option is omitted, standard output is used.
+.TP
+.BI \-s " text" ", " \-\-separator= "text"
+Use the specified \fItext\fR as the middle truncation separator line. The default is "[... TRUNCATED ...]".
+.TP
+.BI \-b " marker" ", " \-\-bookend= "marker"
+Use the specified \fImarker\fR as the Start-of-File (SOF) bookend line. The default is "[ SOF ]".
+.TP
+.BI \-e " marker" ", " \-\-endbookend= "marker"
+Use the specified \fImarker\fR as the End-of-File (EOF) bookend line. The default is "[ EOF ]".
+.TP
+.BR \-q ", " \-\-quiet
+Quiet mode. Suppresses the start-of-file and end-of-file bookend markers completely. Only the content lines and the truncation separator (if applicable) are written to output.
+.TP
+.BR \-p ", " \-\-printable
+Strips non-printable control characters, ANSI escape sequences, and binary data from the input lines before processing. A warning is printed to standard error (STDERR) on the first occurrence of stripped characters to alert the user that non-printable content was found.
+.TP
+.BR \-l ", " \-\-lines
+Line numbers. Prepends the original 1-based line number followed by a colon and space (e.g., "12: ") to each printed content line.
+.SH EXAMPLES
+.TP
+.B Basic stream truncation (default 20 lines):
+Read standard input from a stream and truncate to 20 lines:
+.IP
+cat huge_log.log | pinch
+.TP
+.B Read directly from a file:
+Avoid cat piping by letting pinch open the file directly:
+.IP
+pinch -i raw_data.txt
+.TP
+.B Customize the limit and separator:
+Display the first 50 and last 50 lines (total 100), using a custom separator:
+.IP
+pinch -n 100 -s "--- (snip) ---" -i production.log
+.TP
+.B Enable line numbers and quiet mode:
+Prepend original line numbers while suppressing the bookends:
+.IP
+pinch -q -l -i access.log
+.TP
+.B Redirect output to a file:
+Write the truncated output to an output file:
+.IP
+pinch -i input.log -o output.log
+.TP
+.B Strip escape codes and binary data:
+Strip ANSI colors or raw binary control characters:
+.IP
+docker logs web_app | pinch -p -n 30
+.SH EXIT STATUS
+.TP
+.B 0
+Successful termination.
+.TP
+.B 1
+An error occurred, such as:
+.RS
+\- Failure to open the input file.
+.br
+\- Failure to create or write to the output file.
+.br
+\- An invalid command-line argument.
+.br
+\- A negative number specified for the \-n/\-\-number parameter.
+.RE
+.SH AUTHORS
+Written by the Pinch developer community.
+.SH SEE ALSO
+.BR head (1),
+.BR tail (1),
+.BR less (1)

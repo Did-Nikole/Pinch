@@ -18,6 +18,11 @@ DEBUGFLAGS   := -g
 SRC_DIR      := src
 BUILD_DIR    := build
 
+# Installation paths
+PREFIX       ?= /usr/local
+BINDIR       ?= $(PREFIX)/bin
+MANDIR       ?= $(PREFIX)/share/man/man1
+
 # Target executable name
 TARGET       := pinch
 
@@ -70,4 +75,24 @@ fclean: clean
 # Rebuild target
 re: fclean all
 
-.PHONY: all debug clean fclean re
+# ------------------------------------------------------------------------------
+# Installation Rules
+# ------------------------------------------------------------------------------
+
+# Install the application and the man page
+install: all
+	mkdir -p $(DESTDIR)$(BINDIR)
+	mkdir -p $(DESTDIR)$(MANDIR)
+	cp -f $(TARGET) $(DESTDIR)$(BINDIR)/$(TARGET)
+	chmod 755 $(DESTDIR)$(BINDIR)/$(TARGET)
+	cp -f pinch.1 $(DESTDIR)$(MANDIR)/pinch.1
+	chmod 644 $(DESTDIR)$(MANDIR)/pinch.1
+	@echo "Installed $(TARGET) to $(DESTDIR)$(BINDIR) and man page to $(DESTDIR)$(MANDIR)"
+
+# Uninstall the application and the man page
+uninstall:
+	rm -f $(DESTDIR)$(BINDIR)/$(TARGET)
+	rm -f $(DESTDIR)$(MANDIR)/pinch.1
+	@echo "Uninstalled $(TARGET) and man page."
+
+.PHONY: all debug clean fclean re install uninstall
