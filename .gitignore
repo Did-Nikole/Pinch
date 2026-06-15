@@ -1,0 +1,5 @@
+# Ignore the build directory at the root of the project
+/build/
+
+# Ignore all folders starting with a dot (.) anywhere in the project
+.*/

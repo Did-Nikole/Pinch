@@ -1,11 +1,11 @@
 #include "pinch.h"
+#include <cerrno>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <optional>
 #include <string>
 #include <vector>
-#include <cerrno>
-#include <cstring>
 #define ARGSPARSERRENEWED_IMPLEMENTATION
 
 #include "ArgsParser.hpp"
@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
 
   parser.addArgument({.type = ArgType::INTEGER,
                       .shortFlag = "-n",
-                      .longFlag = "--lines",
+                      .longFlag = "--number",
                       .description = "Maximum number of lines to display",
                       .required = false,
                       .defaultValue = 20});
@@ -88,6 +88,14 @@ int main(int argc, char **argv) {
                       .required = false,
                       .defaultValue = false});
 
+  parser.addArgument({.type = ArgType::BOOLEAN,
+                      .shortFlag = "-l",
+                      .longFlag = "--lines",
+                      .description = "Line numbers."
+                                     " Adds line numbers to the output.",
+                      .required = false,
+                      .defaultValue = false});
+
   if (!parser.parse(argc, argv, results)) {
     parser.showHelp();
     return 1;
@@ -104,7 +112,8 @@ int main(int argc, char **argv) {
     if (instring != "stdin") {
       auto *infile = new std::ifstream(instring);
       if (!infile->is_open()) {
-        std::cerr << "Error: Cannot open input file '" << instring << "': " << std::strerror(errno) << std::endl;
+        std::cerr << "Error: Cannot open input file '" << instring
+                  << "': " << std::strerror(errno) << std::endl;
         delete infile;
         return 1;
       }
@@ -117,7 +126,8 @@ int main(int argc, char **argv) {
     if (outstring != "stdout") {
       auto *outfile = new std::ofstream(outstring);
       if (!outfile->is_open()) {
-        std::cerr << "Error: Cannot open output file '" << outstring << "': " << std::strerror(errno) << std::endl;
+        std::cerr << "Error: Cannot open output file '" << outstring
+                  << "': " << std::strerror(errno) << std::endl;
         delete outfile;
         if (input_ptr != &std::cin) {
           delete input_ptr;
@@ -152,6 +162,10 @@ int main(int argc, char **argv) {
 
   if (results.at("quiet").has_value()) {
     opts.quiet = std::get<bool>(results.at("quiet").value());
+  }
+
+  if (results.at("lines").has_value()) {
+    opts.lineNumbers = std::get<bool>(results.at("lines").value());
   }
 
   auto pinch_result = Pinch::pinch(*input_ptr, *output_ptr, opts);

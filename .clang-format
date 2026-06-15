@@ -1,0 +1,9 @@
+
+# Force the first argument to stay on the same line as the opening parenthesis
+AllowAllArgumentsOnNextLine: false
+
+# Ensure subsequent lines align with the open parenthesis/brace
+AlignAfterOpenBracket: Align
+
+# Explicitly tell it to use C++20 so it understands designated initializers properly
+Standard: C++20
